@@ -6,8 +6,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  // Ścieżka do pliku bazy danych. Jest w pliku .env
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db" 
 }
 
 // --- Twój Model Danych ---
