@@ -15,7 +15,21 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
   const [isLoading, setIsLoading] = useState(false);
 
   const handleBorrow = async () => {
-    const memberId = 1;
+    // Prefer the member selected in the navbar (stored in localStorage by UserSelector).
+    // If none is selected, report it and abort so the user can pick one.
+    let memberId: number | null = null;
+    try {
+      const raw = localStorage.getItem('selectedMemberId');
+      if (raw) memberId = Number(raw);
+    } catch (e) {
+      memberId = null;
+    }
+
+    if (!memberId) {
+      // report missing selection to parent so UI can show status/message
+      if (onResponse) onResponse({ status: 0, url: 'POST /api/loans/borrow', ok: false, message: 'Brak wybranego użytkownika. Wybierz czytelnika w prawym górnym rogu.' });
+      return;
+    }
 
     // allow attempting borrow even if not available so server can return proper status
     setIsLoading(true);
@@ -63,7 +77,7 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
       <button
         onClick={handleBorrow}
         className={`px-4 py-2 rounded-md font-medium text-white
-          ${isAvailable ? 'bg-accent hover:bg-accent-dark' : 'bg-gray-600 hover:bg-gray-500'}
+          ${isAvailable ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-700/60 hover:bg-gray-700'}
           transition-colors
           ${isLoading ? 'opacity-50 animate-pulse' : ''}
         `}

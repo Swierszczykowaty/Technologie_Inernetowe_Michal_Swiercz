@@ -27,11 +27,16 @@ export default function DashboardPage() {
   const [lastResponse, setLastResponse] = useState<{ status: number; url: string; ok: boolean; message?: string } | null>(null);
   
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [columns, setColumns] = useState<number>(3);
+  const [page, setPage] = useState<number>(1);
+  const [loansPage, setLoansPage] = useState<number>(1);
+  const loansPageSize = 5;
+  const [membersPage, setMembersPage] = useState<number>(1);
+  const membersPageSize = 5;
 
   const fetchAllData = useCallback(async () => {
     try {
       setLoadingError(null);
-      // helper to get response and status
       const fetchWithStatus = async (url: string) => {
         const res = await fetch(url, { cache: 'no-store' });
         let data = null;
@@ -45,7 +50,6 @@ export default function DashboardPage() {
         fetchWithStatus('http://localhost:3000/api/members')
       ]);
 
-      // if any failed, set lastResponse accordingly and throw
       const failing = [booksRes, loansRes, membersRes].find(r => !r.ok);
       if (failing) {
         setLastResponse({ status: failing.status, url: failing.url, ok: false, message: failing.error });
@@ -65,7 +69,38 @@ export default function DashboardPage() {
     fetchAllData();
   }, [fetchAllData]);
 
+  useEffect(() => {
+    const calcCols = () => {
+      if (typeof window === 'undefined') return;
+      const w = window.innerWidth;
+      if (w >= 1024) setColumns(3);
+      else if (w >= 768) setColumns(2);
+      else setColumns(1);
+    };
+    calcCols();
+    window.addEventListener('resize', calcCols);
+    return () => window.removeEventListener('resize', calcCols);
+  }, []);
+
   const activeLoans = loans.filter(loan => !loan.return_date);
+
+  const pageSize = 2 * columns;
+  const totalPages = Math.max(1, Math.ceil(books.length / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+    if (page < 1) setPage(1);
+  }, [page, totalPages]);
+  const loansTotalPages = Math.max(1, Math.ceil(activeLoans.length / loansPageSize));
+  useEffect(() => {
+    if (loansPage > loansTotalPages) setLoansPage(loansTotalPages);
+    if (loansPage < 1) setLoansPage(1);
+  }, [loansPage, loansTotalPages]);
+
+  const membersTotalPages = Math.max(1, Math.ceil(members.length / membersPageSize));
+  useEffect(() => {
+    if (membersPage > membersTotalPages) setMembersPage(membersTotalPages);
+    if (membersPage < 1) setMembersPage(1);
+  }, [membersPage, membersTotalPages]);
 
   const [bookTitle, setBookTitle] = useState('');
   const [bookAuthor, setBookAuthor] = useState('');
@@ -141,7 +176,7 @@ export default function DashboardPage() {
               <div className="text-xs">Status: {lastResponse.status} — {lastResponse.ok ? 'OK' : 'Błąd'}</div>
               {lastResponse.message && <div className="text-xs mt-1">Wiadomość: {lastResponse.message}</div>}
             </div>
-            <button onClick={() => setLastResponse(null)} className="ml-3 text-sm font-bold px-2 py-1 rounded hover:bg-gray-200">×</button>
+            <button onClick={() => setLastResponse(null)} className="ml-3 text-sm font-bold px-2 py-1 rounded hover:bg-gray-700">×</button>
           </div>
         </div>
       )}
@@ -150,7 +185,7 @@ export default function DashboardPage() {
         
         <section>
           <h2 className="text-3xl font-bold mb-4">Dodaj Książkę<span className="text-accent">.</span></h2>
-          <form onSubmit={handleAddBook} className="p-6 border rounded-lg shadow-md space-y-4 dark:border-gray-700">
+          <form onSubmit={handleAddBook} className="p-6 border border-gray-700 rounded-lg shadow-md space-y-4 bg-gray-800">
             <div>
               <label htmlFor="title" className="block text-sm font-medium mb-1">Tytuł</label>
               <input id="title" type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)}
@@ -166,7 +201,6 @@ export default function DashboardPage() {
               <input id="copies" type="number" value={bookCopies} onChange={(e) => setBookCopies(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
             </div>
-            {/* server-side errors (kept in state) are intentionally not displayed inline */}
             {bookFormSuccess && <p className="text-green-600 text-sm">{bookFormSuccess}</p>}
             <button type="submit" className="w-full px-4 py-2 rounded-md font-medium text-white  bg-gray-700 hover:bg-gray-600 cursor-pointer transition-colors">
               Dodaj Książkę
@@ -176,7 +210,7 @@ export default function DashboardPage() {
 
         <section>
           <h2 className="text-3xl font-bold mb-4">Dodaj Czytelnika<span className="text-accent">.</span></h2>
-          <form onSubmit={handleAddMember} className="p-6 border rounded-lg shadow-md space-y-4 dark:border-gray-700">
+          <form onSubmit={handleAddMember} className="p-6 border border-gray-700 rounded-lg shadow-md space-y-4 bg-gray-800">
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-1">Imię i Nazwisko</label>
               <input id="name" type="text" value={memberName} onChange={(e) => setMemberName(e.target.value)}
@@ -187,7 +221,6 @@ export default function DashboardPage() {
               <input id="email" type="email" value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
             </div>
-            {/* server-side errors (kept in state) are intentionally not displayed inline */}
             {memberFormSuccess && <p className="text-green-600 text-sm">{memberFormSuccess}</p>}
             <button type="submit" className="w-full px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 cursor-pointer font-medium text-white bg-accent hover:bg-accent-dark transition-colors">
               Dodaj Czytelnika
@@ -198,34 +231,56 @@ export default function DashboardPage() {
 
       <section>
         <h2 className="text-3xl font-bold mb-4">Katalog Książek<span className="text-accent">.</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {books.length > 0 ? books.map((book) => (
-            <div key={book.id} className="border border-gray-200 rounded-lg p-6 shadow-md dark:border-gray-700">
-              <h3 className="text-2xl font-semibold mb-2">{book.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Autor: {book.author}</p>
-              <div className="flex justify-between items-center">
-                <span className={`font-bold ${book.available > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  Dostępne: {book.available} / {book.copies}
-                </span>
-                <BorrowButton
-                  bookId={book.id}
-                  isAvailable={book.available > 0}
-                  onSuccess={fetchAllData}
-                  onResponse={(info) => setLastResponse(info)}
-                />
-              </div>
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {books.length > 0 ? (
+              books.slice((page - 1) * pageSize, page * pageSize).map((book) => (
+                <div key={book.id} className="border border-gray-700 rounded-lg p-6 shadow-md bg-gray-800">
+                  <h3 className="text-2xl font-semibold mb-2">{book.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Autor: {book.author}</p>
+                  <div className="flex justify-between items-center">
+                    <span className={`font-bold ${book.available > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      Dostępne: {book.available} / {book.copies}
+                    </span>
+                    <BorrowButton
+                      bookId={book.id}
+                      isAvailable={book.available > 0}
+                      onSuccess={fetchAllData}
+                      onResponse={(info) => setLastResponse(info)}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">Brak książek w katalogu.</p>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center mt-4 space-x-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+                ← Poprzednia
+              </button>
+              <div className="text-sm">Strona {page} / {totalPages}</div>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${page === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+                Następna →
+              </button>
             </div>
-          )) : (
-            <p className="text-gray-500">Brak książek w katalogu.</p>
           )}
         </div>
       </section>
 
       <section>
         <h2 className="text-3xl font-bold mb-4">Aktywne Wypożyczenia<span className="text-accent">.</span></h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+  <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Książka</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Czytelnik</th>
@@ -234,10 +289,10 @@ export default function DashboardPage() {
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Akcja</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-700">
               {activeLoans.length > 0 ? (
-                activeLoans.map((loan) => (
-                  <tr key={loan.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                activeLoans.slice((loansPage - 1) * loansPageSize, loansPage * loansPageSize).map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap font-medium">{loan.book.title}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{loan.member.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{formatDate(loan.loan_date)}</td>
@@ -257,23 +312,40 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+        {loansTotalPages > 1 && (
+          <div className="flex items-center justify-center mt-3 space-x-3">
+            <button
+              onClick={() => setLoansPage((p) => Math.max(1, p - 1))}
+              disabled={loansPage === 1}
+              className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${loansPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+              ← Poprzednia
+            </button>
+            <div className="text-sm">Strona {loansPage} / {loansTotalPages}</div>
+            <button
+              onClick={() => setLoansPage((p) => Math.min(loansTotalPages, p + 1))}
+              disabled={loansPage === loansTotalPages}
+              className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${loansPage === loansTotalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+              Następna →
+            </button>
+          </div>
+        )}
       </section>
 
       <section>
         <h2 className="text-3xl font-bold mb-4">Użytkownicy<span className="text-accent">.</span></h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+  <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Imię</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Email</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-700">
               {members.length > 0 ? (
-                members.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                members.slice((membersPage - 1) * membersPageSize, membersPage * membersPageSize).map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap font-medium">{m.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{m.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{m.email}</td>
@@ -289,6 +361,23 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+        {membersTotalPages > 1 && (
+          <div className="flex items-center justify-center mt-3 space-x-3">
+            <button
+              onClick={() => setMembersPage((p) => Math.max(1, p - 1))}
+              disabled={membersPage === 1}
+              className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${membersPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+              ← Poprzednia
+            </button>
+            <div className="text-sm">Strona {membersPage} / {membersTotalPages}</div>
+            <button
+              onClick={() => setMembersPage((p) => Math.min(membersTotalPages, p + 1))}
+              disabled={membersPage === membersTotalPages}
+              className={`px-3 py-1 rounded-md border bg-gray-700 text-sm ${membersPage === membersTotalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}>
+              Następna →
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
