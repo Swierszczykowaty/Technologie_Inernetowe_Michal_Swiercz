@@ -1,58 +1,295 @@
-import { Book } from '@/types';
+// Plik: app/page.tsx
+
+'use client';
+
+import { useState, useEffect, FormEvent, useCallback } from 'react';
+import { Book, Loan, Member } from '@/types';
 import BorrowButton from '@/components/BorrowButton';
+import ReturnButton from '@/components/ReturnButton';
 
-async function getBooks(): Promise<Book[]> {
-  try {
-    const res = await fetch('http://localhost:3000/api/books', {
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      throw new Error('Nie udało się pobrać książek z API');
-    }
-    const data: Book[] = await res.json();
-    return data;
-  } catch (error) {
-    console.error(error);
-    return [];
+async function fetcher(url: string) {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Nie udało się pobrać danych');
   }
+  return res.json();
 }
 
-export default async function HomePage() {
-  const books = await getBooks();
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('pl-PL');
+}
+
+export default function DashboardPage() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [members, setMembers] = useState<Member[]>([]); 
+  const [lastResponse, setLastResponse] = useState<{ status: number; url: string; ok: boolean; message?: string } | null>(null);
+  
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+
+  const fetchAllData = useCallback(async () => {
+    try {
+      setLoadingError(null);
+      // helper to get response and status
+      const fetchWithStatus = async (url: string) => {
+        const res = await fetch(url, { cache: 'no-store' });
+        let data = null;
+        try { data = await res.json(); } catch (e) { data = null; }
+        return { data, status: res.status, ok: res.ok, url, error: !res.ok ? (data?.error ?? data?.message ?? String(data)) : undefined };
+      };
+
+      const [booksRes, loansRes, membersRes] = await Promise.all([
+        fetchWithStatus('http://localhost:3000/api/books'),
+        fetchWithStatus('http://localhost:3000/api/loans'),
+        fetchWithStatus('http://localhost:3000/api/members')
+      ]);
+
+      // if any failed, set lastResponse accordingly and throw
+      const failing = [booksRes, loansRes, membersRes].find(r => !r.ok);
+      if (failing) {
+        setLastResponse({ status: failing.status, url: failing.url, ok: false, message: failing.error });
+        throw new Error(failing.error ?? 'Błąd podczas pobierania danych');
+      }
+
+      setBooks(booksRes.data as Book[]);
+      setLoans(loansRes.data as Loan[]);
+      setMembers(membersRes.data as Member[]);
+      setLastResponse({ status: 200, url: 'batch', ok: true, message: 'Pobrano dane' });
+    } catch (err) {
+      setLoadingError(err instanceof Error ? err.message : 'Nieznany błąd ładowania');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  const activeLoans = loans.filter(loan => !loan.return_date);
+
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookCopies, setBookCopies] = useState(1);
+  const [bookFormError, setBookFormError] = useState<string | null>(null);
+  const [bookFormSuccess, setBookFormSuccess] = useState<string | null>(null);
+
+  const handleAddBook = async (e: FormEvent) => {
+    e.preventDefault();
+    setBookFormError(null);
+    setBookFormSuccess(null);
+    try {
+      const res = await fetch('http://localhost:3000/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bookTitle, author: bookAuthor, copies: Number(bookCopies) }),
+      });
+      const data = await res.json();
+  setLastResponse({ status: res.status, url: 'POST /api/books', ok: res.ok, message: data?.error ?? data?.title ?? undefined });
+  if (!res.ok) throw new Error(data.error || 'Błąd serwera');
+      
+      setBookFormSuccess(`Dodano "${data.title}"!`);
+      setBookTitle('');
+      setBookAuthor('');
+      setBookCopies(1);
+      fetchAllData();
+    } catch (err) {
+      setBookFormError(err instanceof Error ? err.message : 'Wystąpił błąd');
+    }
+  };
+
+  const [memberName, setMemberName] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
+  const [memberFormError, setMemberFormError] = useState<string | null>(null);
+  const [memberFormSuccess, setMemberFormSuccess] = useState<string | null>(null);
+
+  const handleAddMember = async (e: FormEvent) => {
+    e.preventDefault();
+    setMemberFormError(null);
+    setMemberFormSuccess(null);
+    try {
+      const res = await fetch('http://localhost:3000/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: memberName, email: memberEmail }),
+      });
+      const data = await res.json();
+    setLastResponse({ status: res.status, url: 'POST /api/members', ok: res.ok, message: data?.error ?? data?.name ?? undefined });
+    if (!res.ok) throw new Error(data.error || 'Błąd serwera');
+      
+      setMemberFormSuccess(`Dodano "${data.name}"!`);
+      setMemberName('');
+      setMemberEmail('');
+      fetchAllData(); 
+    } catch (err) {
+      setMemberFormError(err instanceof Error ? err.message : 'Wystąpił błąd');
+    }
+  };
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-6">
-        Katalog Książek
-        <span className="text-accent">.</span>
-      </h1>
+    <div className="space-y-12">
+      {loadingError && (
+        <div className="p-4 text-center text-red-700 bg-red-100 rounded-md">
+          Błąd ładowania danych: {loadingError}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {books.map((book) => (
-          <div
-            key={book.id}
-            className="border border-gray-200 rounded-lg p-6 shadow-md transition-shadow hover:shadow-lg dark:border-gray-700"
-          >
-            <h2 className="text-2xl font-semibold mb-2">{book.title}</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">Autor: {book.author}</p>
-
-            <div className="flex justify-between items-center">
-              <span
-                className={`font-bold ${book.available > 0 ? 'text-green-600' : 'text-red-500'}`}
-              >
-                Dostępne: {book.available} / {book.copies}
-              </span>
-
-              <BorrowButton bookId={book.id} isAvailable={book.available > 0} />
+      {lastResponse && (
+        <div className={`fixed bottom-4 right-4 z-50 w-80 p-3 rounded-md shadow-lg ${lastResponse.ok ? 'bg-green-50 text-green-800' : 'bg-yellow-50 text-yellow-800'}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-sm">Ostatnia odpowiedź: <strong>{lastResponse.url}</strong></div>
+              <div className="text-xs">Status: {lastResponse.status} — {lastResponse.ok ? 'OK' : 'Błąd'}</div>
+              {lastResponse.message && <div className="text-xs mt-1">Wiadomość: {lastResponse.message}</div>}
             </div>
+            <button onClick={() => setLastResponse(null)} className="ml-3 text-sm font-bold px-2 py-1 rounded hover:bg-gray-200">×</button>
           </div>
-        ))}
+        </div>
+      )}
 
-        {books.length === 0 && (
-          <p className="text-gray-500">Nie znaleziono żadnych książek. Dodaj je w API.</p>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        
+        <section>
+          <h2 className="text-3xl font-bold mb-4">Dodaj Książkę<span className="text-accent">.</span></h2>
+          <form onSubmit={handleAddBook} className="p-6 border rounded-lg shadow-md space-y-4 dark:border-gray-700">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium mb-1">Tytuł</label>
+              <input id="title" type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div>
+              <label htmlFor="author" className="block text-sm font-medium mb-1">Autor</label>
+              <input id="author" type="text" value={bookAuthor} onChange={(e) => setBookAuthor(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div>
+              <label htmlFor="copies" className="block text-sm font-medium mb-1">Egzemplarze</label>
+              <input id="copies" type="number" value={bookCopies} onChange={(e) => setBookCopies(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            {/* server-side errors (kept in state) are intentionally not displayed inline */}
+            {bookFormSuccess && <p className="text-green-600 text-sm">{bookFormSuccess}</p>}
+            <button type="submit" className="w-full px-4 py-2 rounded-md font-medium text-white  bg-gray-700 hover:bg-gray-600 cursor-pointer transition-colors">
+              Dodaj Książkę
+            </button>
+          </form>
+        </section>
+
+        <section>
+          <h2 className="text-3xl font-bold mb-4">Dodaj Czytelnika<span className="text-accent">.</span></h2>
+          <form onSubmit={handleAddMember} className="p-6 border rounded-lg shadow-md space-y-4 dark:border-gray-700">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium mb-1">Imię i Nazwisko</label>
+              <input id="name" type="text" value={memberName} onChange={(e) => setMemberName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+              <input id="email" type="email" value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            {/* server-side errors (kept in state) are intentionally not displayed inline */}
+            {memberFormSuccess && <p className="text-green-600 text-sm">{memberFormSuccess}</p>}
+            <button type="submit" className="w-full px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 cursor-pointer font-medium text-white bg-accent hover:bg-accent-dark transition-colors">
+              Dodaj Czytelnika
+            </button>
+          </form>
+        </section>
       </div>
+
+      <section>
+        <h2 className="text-3xl font-bold mb-4">Katalog Książek<span className="text-accent">.</span></h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {books.length > 0 ? books.map((book) => (
+            <div key={book.id} className="border border-gray-200 rounded-lg p-6 shadow-md dark:border-gray-700">
+              <h3 className="text-2xl font-semibold mb-2">{book.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Autor: {book.author}</p>
+              <div className="flex justify-between items-center">
+                <span className={`font-bold ${book.available > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  Dostępne: {book.available} / {book.copies}
+                </span>
+                <BorrowButton
+                  bookId={book.id}
+                  isAvailable={book.available > 0}
+                  onSuccess={fetchAllData}
+                  onResponse={(info) => setLastResponse(info)}
+                />
+              </div>
+            </div>
+          )) : (
+            <p className="text-gray-500">Brak książek w katalogu.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-3xl font-bold mb-4">Aktywne Wypożyczenia<span className="text-accent">.</span></h2>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Książka</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Czytelnik</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Data Wyp.</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Termin Zwrotu</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Akcja</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {activeLoans.length > 0 ? (
+                activeLoans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap font-medium">{loan.book.title}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{loan.member.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{formatDate(loan.loan_date)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-red-500">{formatDate(loan.due_date)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <ReturnButton loanId={loan.id} onSuccess={fetchAllData} onResponse={(info) => setLastResponse(info)} />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    Brak aktywnych wypożyczeń.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-3xl font-bold mb-4">Użytkownicy<span className="text-accent">.</span></h2>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Imię</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Email</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {members.length > 0 ? (
+                members.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap font-medium">{m.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{m.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{m.email}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                    Brak zarejestrowanych użytkowników.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

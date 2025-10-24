@@ -6,14 +6,10 @@ const prisma = new PrismaClient();
 const PORT = 3000;
 
 app.use(express.json());
-
+//dla frontu aby działał z api:
 app.use(cors({
   origin: 'http://localhost:3001' 
 }));
-
-app.get('/', (req, res) => {
-  res.send('Witaj w Projekcie Wypożyczalnia Książek API!');
-});
 
 app.post('/api/members', async (req, res) => {
   const { name, email } = req.body;
