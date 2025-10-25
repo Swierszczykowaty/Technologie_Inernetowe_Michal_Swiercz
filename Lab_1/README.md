@@ -7,13 +7,17 @@ Prosty projekt biblioteki: backend (Express + Prisma + SQLite) i frontend (Next.
 # Backend
 cd .\Lab_1
 npm install
-npx prisma generate
-npm run dev
+node index.js
 
 # Frontend
-cd .\frontend-biblioteka-api
+w nowej konsoli:
+cd .\Lab_1\frontend-biblioteka-api
 npm install
 npm run dev
+
+# Oczekiwany wynik końcowy
+http://localhost:3000 - działanie backendu
+http://localhost:3001 - działanie frontendu
 
 ## Uwagi
 - Odpowiedzi API oraz kody statusu (np. 200, 400) wyświetlane są jako powiadomienie na dashboardzie.
