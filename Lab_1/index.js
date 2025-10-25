@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 const PORT = 3000;
 
 app.use(express.json());
-//dla frontu aby działał z api:
 app.use(cors({
   origin: 'http://localhost:3001' 
 }));
@@ -227,4 +226,3 @@ app.post('/api/loans/return', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Serwer uruchomiony na http://localhost:${PORT}`);
 });
-

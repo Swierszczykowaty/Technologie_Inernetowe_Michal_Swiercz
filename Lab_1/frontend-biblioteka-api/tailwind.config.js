@@ -8,9 +8,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Dodajemy naszą paletę 'accent'
         accent: {
-          DEFAULT: '#6D28D9', // Główny fiolet
+          DEFAULT: '#6D28D9', 
           light: '#8B5CF6',
           dark: '#5B21B6',
         },
