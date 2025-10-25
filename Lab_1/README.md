@@ -1,22 +1,22 @@
-# Biblioteka (backend + frontend)
+## Biblioteka (backend + frontend)
 
 Prosty projekt biblioteki: backend (Express + Prisma + SQLite) i frontend (Next.js).
 
-## Uruchomienie
+# Uruchomienie
 
-# Backend
-cd .\Lab_1
-npm install
-node index.js
+## Backend
+cd .\Lab_1 <br/>
+npm install <br/>
+node index.js <br/>
 
-# Frontend
+## Frontend
 w nowej konsoli:
-cd .\Lab_1\frontend-biblioteka-api
-npm install
-npm run dev
+cd .\Lab_1\frontend-biblioteka-api <br/>
+npm install <br/>
+npm run dev <br/>
 
 # Oczekiwany wynik końcowy
-http://localhost:3000 - działanie backendu
+http://localhost:3000 - działanie backendu <br/>
 http://localhost:3001 - działanie frontendu
 
 ## Uwagi
