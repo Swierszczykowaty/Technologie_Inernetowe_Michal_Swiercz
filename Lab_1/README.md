@@ -5,10 +5,10 @@ Prosty projekt biblioteki: backend (Express + Prisma + SQLite) i frontend (Next.
 # Uruchomienie z terminalu
 
 ## Backend
-Otwórz terminal:
+Otwórz terminal i wykonaj:
 - *cd .\Lab_1*
 - *npm install* -> instalacja potrzebnych bibliotek backendu
-- Stwórz w tym folderze projektu plik .env i dodaj zmienną DATABASE_URL np. *DATABASE_URL="file:./dev.db"*
+- *echo DATABASE_URL="file:./dev.db" > .env* -> stworzenie pliku .env ze zmienną: *DATABASE_URL="file:./dev.db"*
 - *npx prisma migrate dev* -> generowanie bazy danych
 - *node index.js* -> uruchomienie lokalnego serwera
 
