@@ -6,6 +6,7 @@ import { useState, useEffect, FormEvent, useCallback } from 'react';
 import { Book, Loan, Member } from '@/types';
 import BorrowButton from '@/components/BorrowButton';
 import ReturnButton from '@/components/ReturnButton';
+import OverdueReport from '@/components/OverdueReport';
 
 async function fetcher(url: string) {
   const res = await fetch(url, { cache: 'no-store' });
@@ -157,6 +158,47 @@ export default function DashboardPage() {
       fetchAllData(); 
     } catch (err) {
       setMemberFormError(err instanceof Error ? err.message : 'Wystąpił błąd');
+    }
+  };
+
+  const [overdueLoading, setOverdueLoading] = useState(false);
+  const downloadOverdueCSV = async () => {
+    setOverdueLoading(true);
+    try {
+      const res = await fetch('http://localhost:3000/api/reports/overdue');
+      const payload = await res.json().catch(() => (null));
+      setLastResponse({ status: res.status, url: '/api/reports/overdue', ok: res.ok, message: payload?.error ?? (res.ok ? 'Pobrano raport' : undefined) });
+      if (!res.ok || !payload) throw new Error(payload?.error || `Błąd serwera (${res.status})`);
+      const data = payload as Array<any>;
+      if (!data || data.length === 0) {
+        return;
+      }
+      const headers = ['loan_id','member_id','member_name','member_email','book_id','book_title','loan_date','due_date','days_overdue'];
+      const rows = data.map(d => [
+        d.loan_id,
+        d.member?.id,
+        '"' + (d.member?.name ?? '') + '"',
+        d.member?.email,
+        d.book?.id,
+        '"' + (d.book?.title ?? '') + '"',
+        d.loan_date,
+        d.due_date,
+        d.days_overdue,
+      ].join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `overdue-report-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setOverdueLoading(false);
     }
   };
 
@@ -329,6 +371,15 @@ export default function DashboardPage() {
             </button>
           </div>
         )}
+      </section>
+
+      <section className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-3xl font-bold">Kary za przetrzymanie<span className="text-accent">.</span></h2>
+          <button onClick={downloadOverdueCSV} disabled={overdueLoading}
+            className="px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-white">{overdueLoading ? 'Ładowanie...' : 'Pobierz CSV'}</button>
+        </div>
+        <OverdueReport />
       </section>
 
       <section>

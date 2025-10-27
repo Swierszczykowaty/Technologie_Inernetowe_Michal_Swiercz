@@ -226,3 +226,45 @@ app.post('/api/loans/return', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Serwer uruchomiony na http://localhost:${PORT}`);
 });
+
+// Raport zaległych wypożyczeń (overdue)
+
+app.get('/api/reports/overdue', async (req, res) => {
+  try {
+    const finePerDay = req.query.finePerDay ? parseFloat(req.query.finePerDay) : 1;
+    const now = new Date();
+
+    const overdueLoans = await prisma.loan.findMany({
+      where: {
+        due_date: { lt: now },
+        return_date: null,
+      },
+      include: {
+        member: { select: { id: true, name: true, email: true } },
+        book: { select: { id: true, title: true } },
+      },
+      orderBy: { due_date: 'asc' },
+    });
+
+    const result = overdueLoans.map(loan => {
+      const due = new Date(loan.due_date);
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysOverdue = Math.max(0, Math.floor((now - due) / msPerDay));
+      const fine = +(daysOverdue * finePerDay).toFixed(2);
+      return {
+        loan_id: loan.id,
+        member: loan.member,
+        book: loan.book,
+        loan_date: loan.loan_date,
+        due_date: loan.due_date,
+        days_overdue: daysOverdue,
+        fine: fine,
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Nie udało się wygenerować raportu zaległości.' });
+  }
+});
