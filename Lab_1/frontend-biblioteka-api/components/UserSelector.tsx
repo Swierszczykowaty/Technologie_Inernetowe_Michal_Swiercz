@@ -19,7 +19,6 @@ export default function UserSelector() {
   }, []);
 
   useEffect(() => {
-    // load saved selection from localStorage
     try {
       const raw = localStorage.getItem('selectedMemberId');
       if (raw) setSelectedId(Number(raw));
@@ -30,7 +29,6 @@ export default function UserSelector() {
     const id = Number(value) || null;
     setSelectedId(id);
     try { localStorage.setItem('selectedMemberId', String(id)); } catch (e) {}
-    // dispatch a simple event so other parts of app can listen if needed
     const ev = new CustomEvent('memberChange', { detail: { id } });
     window.dispatchEvent(ev);
   };

@@ -1,11 +1,9 @@
--- CreateTable
 CREATE TABLE "Member" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL
 );
 
--- CreateTable
 CREATE TABLE "Book" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "title" TEXT NOT NULL,
@@ -13,7 +11,6 @@ CREATE TABLE "Book" (
     "copies" INTEGER NOT NULL DEFAULT 1
 );
 
--- CreateTable
 CREATE TABLE "Loan" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "loan_date" DATETIME NOT NULL,

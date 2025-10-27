@@ -1,5 +1,3 @@
-// Plik: components/BorrowButton.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -15,8 +13,6 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
   const [isLoading, setIsLoading] = useState(false);
 
   const handleBorrow = async () => {
-    // Prefer the member selected in the navbar (stored in localStorage by UserSelector).
-    // If none is selected, report it and abort so the user can pick one.
     let memberId: number | null = null;
     try {
       const raw = localStorage.getItem('selectedMemberId');
@@ -26,12 +22,10 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
     }
 
     if (!memberId) {
-      // report missing selection to parent so UI can show status/message
       if (onResponse) onResponse({ status: 0, url: 'POST /api/loans/borrow', ok: false, message: 'Brak wybranego użytkownika. Wybierz czytelnika w prawym górnym rogu.' });
       return;
     }
 
-    // allow attempting borrow even if not available so server can return proper status
     setIsLoading(true);
 
     try {
@@ -47,7 +41,6 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
       let data: any = null;
       try { data = await res.json(); } catch (e) { data = null; }
 
-      // report response to parent (for showing status codes/messages)
       if (onResponse) onResponse({ status: res.status, url: 'POST /api/loans/borrow', ok: res.ok, message: data?.error ?? data?.message ?? (data?.id ? 'OK' : undefined) });
 
       if (!res.ok) {
@@ -56,7 +49,6 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
         return;
       }
 
-      // success
       if (onResponse) onResponse({ status: res.status, url: 'POST /api/loans/borrow', ok: true, message: data?.message ?? 'Wypożyczono' });
       if (onSuccess) onSuccess();
 
@@ -84,7 +76,6 @@ export default function BorrowButton({ bookId, isAvailable, onSuccess, onRespons
       >
         {isLoading ? '...' : 'Wypożycz'}
       </button>
-      {/* Errors are reported to the global lastResponse panel via onResponse */}
     </div>
   );
 }

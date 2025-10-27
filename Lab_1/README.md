@@ -29,3 +29,24 @@ w nowym termianlu:
 - W prawym górnym rogu strony znajduje się selektor użytkownika (UserSelector) — wybór jest zapisywany w `localStorage` i wpływa na operacje wypożyczania.
 
 ---
+
+## Raporty
+
+Projekt udostępnia prosty raport zaległych wypożyczeń (overdue). Możesz go pobrać z poziomu frontendu (przycisk "Pobierz CSV" obok nagłówka sekcji "Kary za przetrzymanie") lub wywołać bezpośrednio endpoint backendu.
+
+- JSON (API):
+
+	GET http://localhost:3000/api/reports/overdue
+
+	Zwraca listę obiektów z polami: `loan_id`, `member` (id/name/email), `book` (id/title), `loan_date`, `due_date`, `days_overdue`.
+
+## Sztuczne dane raportów
+
+Dodałem ręcznie kilka sztucznych wypożyczeń (użyteczne do testowania raportu zaległości). Przykładowe polecenie PowerShell, które wykorzystałem, to:
+
+```powershell
+Invoke-RestMethod -Uri 'http://localhost:3000/api/loans/borrow' -Method Post -Body (@{ member_id = 1; book_id = 1; days = -30 } | ConvertTo-Json) -ContentType 'application/json'
+```
+
+
+

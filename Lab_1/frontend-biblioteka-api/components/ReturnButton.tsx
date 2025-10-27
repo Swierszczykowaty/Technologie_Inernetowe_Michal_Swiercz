@@ -1,5 +1,3 @@
-// Plik: components/ReturnButton.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -14,7 +12,6 @@ export default function ReturnButton({ loanId, onSuccess, onResponse }: ReturnBu
   const [isLoading, setIsLoading] = useState(false);
 
   const handleReturn = async () => {
-    // no browser confirm popup - proceed directly
     setIsLoading(true);
     try {
       const res = await fetch('http://localhost:3000/api/loans/return', {
@@ -54,7 +51,6 @@ export default function ReturnButton({ loanId, onSuccess, onResponse }: ReturnBu
       >
         {isLoading ? '...' : 'Zwróć'}
       </button>
-      {/* Errors are reported to the global lastResponse panel via onResponse */}
     </div>
   );
 }
