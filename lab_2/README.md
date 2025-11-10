@@ -55,7 +55,7 @@ npm install
 Utwórz plik .env w głównym katalogu projektu. Musi on zawierać dwie kluczowe zmienne: (Na potrzeby studiów umieszczam plik publicznie)
 
 
-DATABASE_URL=file:./dev.db
+DATABASE_URL=file:./dev.db <br>
 SESSION_PASSWORD="Xd9VLviD3TYdR6QE1sylY05O0OGYR5vA"
 
 ```bash
