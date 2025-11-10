@@ -1,12 +1,17 @@
+// Plik: app/api/cart/item/[productId]/route.ts
+
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { productId: string } }
+  // 1. Zmieniamy typ 'params' na Promise<{...}>
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params;
+    // 2. Używamy 'await', aby "rozpakować" obietnicę
+    const { productId } = await params;
+
     if (!productId) {
       return NextResponse.json({ error: 'Brak productId w URL.' }, { status: 400 });
     }

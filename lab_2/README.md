@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lab_2: Sklep
 
-## Getting Started
+## 🚀 Główne Technologie
 
-First, run the development server:
+* **Framework:** Next.js (App Router)
+* **Język:** TypeScript
+* **Styling:** Tailwind CSS
+* **Baza Danych (ORM):** Prisma
+* **Baza Danych (Silnik):** SQLite
+* **Sesja (Koszyk):** `iron-session` (szyfrowane ciasteczka po stronie klienta)
+
+## ✨ Funkcjonalności
+
+Aplikacja podzielona jest na trzy główne sekcje widoczne na stronie głównej:
+
+### 1. Sklep i Koszyk
+
+* **Lista Produktów:** Dynamicznie ładowana lista produktów dostępnych do zakupu.
+* **Koszyk po stronie serwera:** Stan koszyka (dodawanie, zmiana ilości, usuwanie) jest zarządzany przez API i przechowywany w zaszyfrowanej sesji. Nie jest zapisywany w bazie danych aż do momentu zamówienia.
+* **Finalizacja Zamówienia (Checkout):**
+    * Pobiera koszyk z sesji.
+    * Tworzy "snapshot" cen w momencie zakupu, aby przyszłe zmiany cen produktów nie wpłynęły na historię.
+    * Zapisuje `Order` i `OrderItem` w bazie danych w ramach jednej transakcji.
+* **Kupony Rabatowe:**
+    * Możliwość wprowadzenia kodu rabatowego (np. `SALE20` lub `STUDENT10`).
+    * Walidacja kodu po stronie klienta i serwera.
+    * Poprawne obliczanie i zapisywanie `subTotal`, `discountAmount` i `finalTotal` w bazie.
+
+### 2. Panel Administracyjny (CRUD Produktów)
+
+* **Dodawanie produktów:** Formularz do dodawania nowych produktów do bazy.
+* **Tabela produktów:** Pełna lista produktów z bazy danych.
+* **Edycja (Update):** Możliwość edycji nazwy i ceny produktu "w miejscu" (inline).
+* **Usuwanie (Delete):** Możliwość usunięcia produktu. (Logika `onDelete: SetNull` pozwala na usunięcie produktu, zachowując go jako `[Produkt usunięty]` w historii zamówień).
+
+### 3. Historia Zamówień
+
+* Lista wszystkich złożonych zamówień, pobierana z bazy danych (`/api/orders`).
+* Wyświetla sumę końcową, datę oraz wszystkie pozycje z zamówienia (wraz ze snapshotem ceny).
+* Odświeża się automatycznie po złożeniu nowego zamówienia.
+
+---
+
+## 🛠️ Uruchomienie Projektu
+
+### Krok 1: Instalacja zależności
+
+Po sklonowaniu repozytorium, zainstaluj wszystkie potrzebne pakiety:
+
+```bash
+npm install
+```
+
+### Krok 2: Konfiguracja pliku .env
+Utwórz plik .env w głównym katalogu projektu. Musi on zawierać dwie kluczowe zmienne: (Na potrzeby studiów umieszczam plik publicznie)
+
+
+DATABASE_URL=file:./dev.db
+SESSION_PASSWORD="Xd9VLviD3TYdR6QE1sylY05O0OGYR5vA"
+
+```bash
+npx prisma migrate dev
+```
+
+Krok 4: Uruchomienie serwera deweloperskiego
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Aplikacja będzie dostępna pod adresem http://localhost:3000.
+
+(Opcjonalnie) Podgląd Bazy Danych
+Aby zobaczyć dane (Produkty, Zamówienia) bezpośrednio w bazie, możesz użyć wbudowanego narzędzia Prisma Studio:
+
+```bash
+npx prisma studio
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🧭 Kontrakt API (API Endpoints)
+Projekt implementuje następujące punkty końcowe:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Produkty
+GET /api/products - Zwraca listę wszystkich produktów.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+POST /api/products - Tworzy nowy produkt.
 
-## Learn More
+PATCH /api/products/[productId] - Aktualizuje istniejący produkt.
 
-To learn more about Next.js, take a look at the following resources:
+DELETE /api/products/[productId] - Usuwa produkt.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Koszyk (Sesja)
+GET /api/cart - Odczytuje zawartość koszyka z sesji.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+POST /api/cart/add - Dodaje pozycję do koszyka.
 
-## Deploy on Vercel
+PATCH /api/cart/item - Zmienia ilość pozycji w koszyku.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+DELETE /api/cart/item/[productId] - Usuwa pozycję z koszyka.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Kupony
+POST /api/coupons/validate - Waliduje kod kuponu i zwraca procent zniżki.
+
+Zamówienia
+POST /api/checkout - Przetwarza koszyk (z opcjonalnym kuponem), tworzy zamówienie w bazie i czyści sesję.
+
+GET /api/orders - Zwraca historię wszystkich zamówień.

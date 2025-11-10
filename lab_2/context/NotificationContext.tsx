@@ -1,6 +1,13 @@
+// Plik: context/NotificationContext.tsx
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { 
+  createContext, 
+  useContext, 
+  useState, 
+  ReactNode, 
+  useCallback 
+} from 'react';
 
 export interface ApiNotification {
   message: string;
@@ -20,16 +27,16 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notification, setNotification] = useState<ApiNotification | null>(null);
 
-  const showNotification = (data: ApiNotification) => {
+  const showNotification = useCallback((data: ApiNotification) => {
     setNotification(data);
     setTimeout(() => {
       setNotification(null);
     }, 5000);
-  };
+  }, []);
 
-  const hideNotification = () => {
+  const hideNotification = useCallback(() => {
     setNotification(null);
-  };
+  }, []);
 
   return (
     <NotificationContext.Provider value={{ notification, showNotification, hideNotification }}>

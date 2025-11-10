@@ -18,6 +18,10 @@ model Order {
   id        String      @id @default(cuid())
   createdAt DateTime    @default(now())
   items     OrderItem[]
+  subTotal       Float   @default(0) 
+  discountAmount Float   @default(0) 
+  finalTotal     Float   @default(0) 
+  appliedCoupon  String?
 }
 
 model OrderItem {

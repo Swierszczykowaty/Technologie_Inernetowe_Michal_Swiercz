@@ -23,7 +23,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
               <h1 className="text-xl font-bold text-accent-light">
                 Wypożyczalnia książek 
               </h1>
-              <h2 className='ml-2 text-sm text-accent-light'>by Michał Świercz</h2>
+              <h2 className='text-sm text-accent-light'>by Michał Świercz</h2>
             </div>
             <div className="flex items-center">
               <UserSelector />
