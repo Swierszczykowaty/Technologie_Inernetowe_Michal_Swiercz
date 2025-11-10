@@ -1,6 +1,6 @@
 ## Biblioteka (backend + frontend)
 
-Prosty projekt biblioteki: backend (Express + Prisma + SQLite) i frontend (Next.js).
+Prosty projekt na studia biblioteki: backend (Express + Prisma + SQLite) i frontend (Next.js).
 
 # Uruchomienie z terminalu
 
