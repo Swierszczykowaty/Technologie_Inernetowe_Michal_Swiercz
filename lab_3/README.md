@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Lab 3 – Blog z moderacją komentarzy
 
-## Getting Started
+Aplikacja Next.js prezentująca prosty blog z panelem dodawania postów, sekcją komentarzy oraz panelem moderatora do zatwierdzania wpisów użytkowników. Warstwa danych oparta jest na Prisma ORM oraz bazie SQLite.
 
-First, run the development server:
+### Stos technologiczny
+- Next.js 16 (App Router) + React 19
+- TypeScript, ESLint 9
+- Prisma 6 + SQLite (`DATABASE_URL=file:./dev.db` domyślnie)
+- Tailwind CSS 4 (tryb eksperymentalny)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Uruchomienie lokalne
+1. **Zależności**:
+	```bash
+	npm install
+	```
+2. **Konfiguracja środowiska**: utwórz plik `.env` w katalogu `lab_3` i ustaw źródło bazy, np. `DATABASE_URL=file:./dev.db`.
+3. **Migracje**:
+	```bash
+	npx prisma migrate dev
+	```
+	Komenda utworzy plik `dev.db` i wygeneruje klienta Prisma.
+4. **Tryb developerski**:
+	```bash
+	npm run dev
+	```
+	Aplikacja nasłuchuje pod `http://localhost:3000`.
+
+## Funkcjonalności
+- Dodawanie postów z poziomu strony głównej (`app/page.tsx`).
+- Podgląd listy postów z linkami do widoku szczegółowego (`/post/[id]`).
+- Formularz dodawania komentarzy do posta (komentarze startowo mają `approved=false`).
+- Panel moderatora (`/admin`) z listą oczekujących komentarzy i możliwością ich zatwierdzania.
+- API REST oparte na `app/api/*`.
+
+### Kluczowe endpointy API
+| Metoda | Ścieżka | Opis |
+|--------|--------|------|
+| GET | `/api/posts` | Lista postów (sortowanie malejąco po dacie). |
+| POST | `/api/posts` | Dodanie nowego posta (`title`, `body`). |
+| GET | `/api/posts/[postId]` | Szczegóły jednego posta. |
+| GET | `/api/posts/[postId]/comments` | Zatwierdzone komentarze danego posta. |
+| POST | `/api/posts/[postId]/comments` | Utworzenie komentarza (domyślnie oczekujący). |
+| GET | `/api/comments/pending` | Komentarze oczekujące na akceptację (dla panelu admina). |
+| POST | `/api/comments/[commentId]/approve` | Zatwierdzenie komentarza. |
+
+## Struktura katalogów
+```
+lab_3/
+├─ app/
+│  ├─ page.tsx           # Strona główna z listą postów
+│  ├─ post/[id]/page.tsx # Widok pojedynczego posta + komentarze
+│  └─ admin/page.tsx     # Panel moderatora
+├─ app/api/              # Routing API (posty, komentarze)
+├─ components/           # Formularze i widoki list
+├─ context/              # Konteksty (powiadomienia)
+├─ lib/prisma.ts         # Klient Prisma
+└─ prisma/               # Schemat oraz migracje
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Typowy przepływ
+1. Użytkownik tworzy post → zapis w `Post`.
+2. Czytelnik dodaje komentarz → rekord `Comment` z `approved=false`.
+3. Moderator odwiedza `/admin` → widzi listę oczekujących z endpointu `/api/comments/pending`.
+4. Po zatwierdzeniu komentarza (`POST /api/comments/:id/approve`) wpis staje się widoczny przy poście.
