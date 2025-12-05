@@ -23,13 +23,10 @@ export default function RootLayout({
             <div className="container mx-auto flex justify-between items-center">
               <div>
                 <h1 className="text-xl font-bold text-accent-light">
-                  Lab4
+                  Filmy i oceny (Movies)
                 </h1>
                 <h2 className='text-sm text-accent-light'>by Michał Świercz</h2>
               </div>
-              <nav>
-                {/* Linki nawigacyjne (np. /admin) */}
-              </nav>
             </div>
           </header>
 

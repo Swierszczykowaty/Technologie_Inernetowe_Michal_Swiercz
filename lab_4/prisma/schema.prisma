@@ -1,12 +1,22 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model Movie {
+  id      String   @id @default(cuid())
+  title   String
+  year    Int
+  ratings Rating[]
+}
+
+model Rating {
+  id      String @id @default(cuid())
+  score   Int    
+  movieId String
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
 }
